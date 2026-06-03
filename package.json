@@ -7,7 +7,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
-    "@reclaimprotocol/js-sdk": "file:.."
+    "@reclaimprotocol/js-sdk": "5.4.2-dev.0"
   },
   "devDependencies": {
     "@types/node": "^20",
