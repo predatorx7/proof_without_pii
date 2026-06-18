@@ -2,7 +2,8 @@ import {
     Proof,
     TeeAttestation,
     verifyProof,
-    VerifyAttestationConfig
+    VerifyAttestationConfig,
+    fetchProviderConfigs
 } from '@reclaimprotocol/js-sdk';
 import assert from 'assert';
 
@@ -156,13 +157,21 @@ export async function verifySession(sessionId: string, info: SessionVerification
         } as unknown as Proof
     });
 
-    return verifyProof(
+    const effectiveProviderId = info.provider_id ?? metadata.provider_id
+    const effectiveProviderVersion = info.provider_version ?? metadata.provider_version
+
+    const result = await verifyProof(
         proofs,
         {
             hasNoPii: true,
-            providerId: info.provider_id ?? metadata.provider_id,
+            providerId: effectiveProviderId,
             providerVersion: info.provider_version ?? metadata.provider_version,
             ...info.verificationConfig
         }
     );
+
+    const providerConfig = await fetchProviderConfigs(effectiveProviderId, effectiveProviderVersion, []);
+    const providerInfo = await (providerConfig as any).info;
+
+    return { result, providerInfo };
 }

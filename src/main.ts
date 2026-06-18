@@ -2,8 +2,9 @@ import { verifySession } from "./validate"
 import readline from "readline/promises";
 
 const main = async () => {
+    let rl: readline.Interface | undefined;
     try {
-        const rl = readline.createInterface({
+        rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout
         });
@@ -24,6 +25,8 @@ const main = async () => {
 
     } catch (error) {
         console.error({ error });
+    } finally {
+        rl?.close();
     }
 }
 
