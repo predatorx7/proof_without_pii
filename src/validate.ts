@@ -105,7 +105,7 @@ const providerInfo = async (effectiveProviderId: string, effectiveProviderVersio
     const providers = providerConfig.providers;
 
     if (!providers || providers.length == 0) {
-        return { providerInfo, canProviderBeFaulty: true, reasons: [errorMessage, 'No providers'] };
+        return { providerInfo, canProviderBeFaulty: true, reasons: [...(errorMessage ? [errorMessage] : []), 'No providers'] };
     }
 
     const provider = providers[0] as (typeof providers[0] & { isScriptRequestingClaim: boolean });
