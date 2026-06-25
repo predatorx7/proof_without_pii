@@ -97,6 +97,25 @@ export interface SessionVerificationInfo {
     verificationConfig: VerifyAttestationConfig;
 }
 
+const contactSupport = 'Please contact Reclaim Protocol Support team or mail us at support@reclaimprotocol.org.';
+
+const providerInfo = async (effectiveProviderId: string, effectiveProviderVersion: string, errorMessage?: string) => {
+    const providerConfig = await fetchProviderConfigs(effectiveProviderId, effectiveProviderVersion, []);
+    const providerInfo = await (providerConfig as any).info;
+    if (errorMessage) {
+        return { providerInfo, canProviderBeFaulty: errorMessage.includes(contactSupport) };
+    } else {
+        const providers = providerConfig.providers;
+        if (!providers || providers.length == 0) {
+            return { providerInfo, canProviderBeFaulty: 'No providers' };
+        }
+        const provider = providers[0] as (typeof providers[0] & { isScriptRequestingClaim: boolean });
+        const hasMissingInjectedRequestData = provider.isScriptRequestingClaim && ((provider.allowedInjectedRequestData ?? []).length == 0);
+        const hasMissingBodySniff = provider.requestData.map(it => it?.method?.toUpperCase() == 'POST' && it?.bodySniff?.enabled != true);
+        return { providerInfo, canProviderBeFaulty: hasMissingInjectedRequestData || hasMissingBodySniff };
+    }
+}
+
 export async function verifySession(sessionId: string, info: SessionVerificationInfo) {
     const session = await fetchSessionInfoBy(sessionId);
     if (!session.data?.length) {
@@ -109,7 +128,7 @@ export async function verifySession(sessionId: string, info: SessionVerification
 
     assert(proofGenerationSuccess.metadata, 'No metadata in proofGenerationSuccess');
 
-    const metadata = JSON.parse(proofGenerationSuccess.metadata) as ProofGenerationSuccessInformation;
+    const metadata = JSON.parse(proofGenerationSuccess.metadata || '{}') as ProofGenerationSuccessInformation;
     const claimTimestamp = info.claim_timestamp ?? metadata.claim_timestamp ?? '1';
     const attestationNonce = info.attestation_nonce ?? metadata.attestation_nonce ?? '1';
 
@@ -160,18 +179,23 @@ export async function verifySession(sessionId: string, info: SessionVerification
     const effectiveProviderId = info.provider_id ?? metadata.provider_id
     const effectiveProviderVersion = info.provider_version ?? metadata.provider_version
 
-    const result = await verifyProof(
-        proofs,
-        {
-            hasNoPii: true,
-            providerId: effectiveProviderId,
-            providerVersion: info.provider_version ?? metadata.provider_version,
-            ...info.verificationConfig
-        }
-    );
+    try {
+        const result = await verifyProof(
+            proofs,
+            {
+                hasNoPii: true,
+                providerId: effectiveProviderId,
+                providerVersion: info.provider_version ?? metadata.provider_version,
+                ...info.verificationConfig
+            }
+        );
 
-    const providerConfig = await fetchProviderConfigs(effectiveProviderId, effectiveProviderVersion, []);
-    const providerInfo = await (providerConfig as any).info;
+        const providerConfig = await providerInfo(effectiveProviderId, effectiveProviderVersion, result.isVerified ? undefined : `Error: ${result.error}`);
 
-    return { result, providerInfo };
+        return { result, ...providerConfig };
+    } catch (error) {
+        const providerConfig = await providerInfo(effectiveProviderId, effectiveProviderVersion, `Error: ${error}`);
+
+        return { result: { isVerified: false }, error, ...providerConfig };
+    }
 }

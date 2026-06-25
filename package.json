@@ -11,7 +11,7 @@
     "@reclaimprotocol/js-sdk": "5.4.2-dev.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/node": "^20.19.43",
     "typescript": "^5"
   }
 }
