@@ -102,18 +102,27 @@ const contactSupport = 'Please contact Reclaim Protocol Support team or mail us 
 const providerInfo = async (effectiveProviderId: string, effectiveProviderVersion: string, errorMessage?: string) => {
     const providerConfig = await fetchProviderConfigs(effectiveProviderId, effectiveProviderVersion, []);
     const providerInfo = await (providerConfig as any).info;
-    if (errorMessage) {
-        return { providerInfo, canProviderBeFaulty: errorMessage.includes(contactSupport) };
-    } else {
-        const providers = providerConfig.providers;
-        if (!providers || providers.length == 0) {
-            return { providerInfo, canProviderBeFaulty: 'No providers' };
-        }
-        const provider = providers[0] as (typeof providers[0] & { isScriptRequestingClaim: boolean });
-        const hasMissingInjectedRequestData = provider.isScriptRequestingClaim && ((provider.allowedInjectedRequestData ?? []).length == 0);
-        const hasMissingBodySniff = provider.requestData.map(it => it?.method?.toUpperCase() == 'POST' && it?.bodySniff?.enabled != true).filter(it => it == true).length > 0;
-        return { providerInfo, canProviderBeFaulty: hasMissingInjectedRequestData || hasMissingBodySniff };
+    const providers = providerConfig.providers;
+
+    if (!providers || providers.length == 0) {
+        return { providerInfo, canProviderBeFaulty: true, reasons: [errorMessage, 'No providers'] };
     }
+
+    const provider = providers[0] as (typeof providers[0] & { isScriptRequestingClaim: boolean });
+    const hasMissingInjectedRequestData = provider.isScriptRequestingClaim && ((provider.allowedInjectedRequestData ?? []).length == 0);
+    const hasMissingBodySniff = provider.requestData.filter(it => it?.method?.toUpperCase() == 'POST' && it?.bodySniff?.enabled != true).length > 0;
+    const reasons: string[] = [];
+    if (errorMessage && errorMessage.includes(contactSupport)) {
+        reasons.push('Faulty provider from error');
+    }
+    if (hasMissingInjectedRequestData) {
+        reasons.push('hasMissingInjectedRequestData')
+    }
+    if (hasMissingBodySniff) {
+        reasons.push('hasMissingBodySniff');
+    }
+
+    return { providerInfo, canProviderBeFaulty: reasons.length > 0, reasons };
 }
 
 export async function verifySession(sessionId: string, info: SessionVerificationInfo) {
