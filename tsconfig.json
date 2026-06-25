@@ -4,8 +4,8 @@
     "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true,
     "paths": {
       "@/*": [

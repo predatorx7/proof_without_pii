@@ -111,7 +111,7 @@ const providerInfo = async (effectiveProviderId: string, effectiveProviderVersio
         }
         const provider = providers[0] as (typeof providers[0] & { isScriptRequestingClaim: boolean });
         const hasMissingInjectedRequestData = provider.isScriptRequestingClaim && ((provider.allowedInjectedRequestData ?? []).length == 0);
-        const hasMissingBodySniff = provider.requestData.map(it => it?.method?.toUpperCase() == 'POST' && it?.bodySniff?.enabled != true);
+        const hasMissingBodySniff = provider.requestData.map(it => it?.method?.toUpperCase() == 'POST' && it?.bodySniff?.enabled != true).filter(it => it == true).length > 0;
         return { providerInfo, canProviderBeFaulty: hasMissingInjectedRequestData || hasMissingBodySniff };
     }
 }
